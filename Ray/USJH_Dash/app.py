@@ -273,13 +273,13 @@ def customer_order_prob(name, periods=1):
     dash.dependencies.Output('input3', 'children'),
     [dash.dependencies.Input('dropdown3', 'value')])
 def callback_a(dropdown_value):
-    return 'You\'ve selected the following item(s): "{}"'.format(dropdown_value)
+    return 'You\'ve selected the {} item(s) '.format(len(dropdown_value))
 
 @app.callback(
     dash.dependencies.Output('input4', 'children'),
     [dash.dependencies.Input('dropdown4', 'value')])
 def callback_a(dropdown_value):
-    return 'You\'ve selected the following item(s): "{}"'.format(dropdown_value)
+    return 'You\'ve selected {} item(s) '.format(len(dropdown_value))
 
 @app.callback(
     dash.dependencies.Output('input5', 'children'),
