@@ -273,21 +273,22 @@ def customer_order_prob(name, periods=1):
     dash.dependencies.Output('input3', 'children'),
     [dash.dependencies.Input('dropdown3', 'value')])
 def callback_a(dropdown_value):
-    return 'You\'ve selected the following item(s): "{}"'.format(dropdown_value)
+    return 'You\'ve selected the {} item(s) '.format(len(dropdown_value))
 
 @app.callback(
     dash.dependencies.Output('input4', 'children'),
     [dash.dependencies.Input('dropdown4', 'value')])
 def callback_a(dropdown_value):
-    return 'You\'ve selected the following item(s): "{}"'.format(dropdown_value)
+    return 'You\'ve selected {} item(s) '.format(len(dropdown_value))
 
 @app.callback(
     dash.dependencies.Output('input5', 'children'),
     [dash.dependencies.Input('dropdown3', 'value'),dash.dependencies.Input('dropdown4', 'value')])
 def prodcut_recommendation(dropdown1, dropdown2):
+    if dropdown2==[]:
+        return ''
 
-
-
+    else:
         sale=set(dropdown1)
         order=set(dropdown2)
 
@@ -378,14 +379,16 @@ def prodcut_recommendation(dropdown1, dropdown2):
             else:
                 result.append(item)
 
-        return result[0]
+        return '1. {}'.format(result[0])
 
 @app.callback(
     dash.dependencies.Output('input6', 'children'),
     [dash.dependencies.Input('dropdown3', 'value'),dash.dependencies.Input('dropdown4', 'value')])
 def prodcut_recommendation(dropdown1, dropdown2):
+    if dropdown2==[]:
+        return ''
 
-
+    else:
         sale=set(dropdown1)
         order=set(dropdown2)
 
@@ -476,14 +479,16 @@ def prodcut_recommendation(dropdown1, dropdown2):
             else:
                 result.append(item)
 
-        return result[1]
+        return '2. {}'.format(result[1])
 
 @app.callback(
     dash.dependencies.Output('input7', 'children'),
     [dash.dependencies.Input('dropdown3', 'value'),dash.dependencies.Input('dropdown4', 'value')])
 def prodcut_recommendation(dropdown1, dropdown2):
+    if dropdown2==[]:
+        return ''
 
-
+    else:
         sale=set(dropdown1)
         order=set(dropdown2)
 
@@ -574,7 +579,7 @@ def prodcut_recommendation(dropdown1, dropdown2):
             else:
                 result.append(item)
 
-        return result[2]
+        return '3. {}'.format(result[2])
 
 if __name__ == "__main__":
     app.run_server(debug=True)
