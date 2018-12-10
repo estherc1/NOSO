@@ -1,113 +1,70 @@
 rm(list=ls())
-setwd("/Users/hee-wonchang/Desktop/cancershiny")
-cancer <- read.csv("CancerByAge.csv")
+setwd("/Users/hee-wonchang/Desktop/NOSO/Esther/Shiny")
+library(DT)
+library(shiny)
+library(shinydashboard)
+library(dplyr)
+library(googleVis)
+library(ggplot2)
+library(RColorBrewer)
+library(plotly)
+library(lubridate)
+library(prophet)
 
-#EDA
-table(cancer$age) #<1, 1-4, 4-9, ... 75-79, 80-84, 85+
-cancer$age <- factor(cancer$age, levels(cancer$age)[c(1,2,11,3:10,12:19)])
+unom <- read.csv("mdata.csv")[,-1]
+colnames(unom) <- c("ID","Product_Description","Date","Out_Qty","In_Qty","Warehouse_Qty","Unit_Price")
+unom <- unom[complete.cases(unom),]
 
-table(cancer$event_type) #incidence OR mortality
+unoq <- read.csv("qdata.csv")[,-1]
+colnames(unoq) <- c("ID","Product_Description","Date","Out_Qty","In_Qty","Warehouse_Qty","Unit_Price")
+unoq <- unoq[complete.cases(unoq),]
 
-table(cancer$race) #all race + 5 separate races
-cancer$race <- as.character(cancer$race)
+sale <- read.csv("sale_by_week.csv")[,-1]
 
-table(cancer$sex) #male, female, combined
-cancer$sex <- as.character(cancer$sex)
+#EDA: DTA1B2073BRN-PJA
+unoq  %>% filter(ID=="DTA4E2531BL") %>% summarise(ITR = sum(Out_Qty)/mean(Warehouse_Qty), 
+                                                       ITR_d = 365/ITR)
+unom  %>% filter(ID=="DTA1B2073BRN-PJA") %>% summarise(ITR = sum(Out_Qty)/mean(Warehouse_Qty), 
+                                                       ITR_d = 365/ITR)
 
-table(cancer$site) 
-cancer$site <- as.character(cancer$site)
-cancer$site[cancer$site=="Female Breast, <i>in situ</i>"] <- "Female Breast, in situ"
-cancer$site[cancer$site=="Male and Female Breast, <i>in situ</i>"] <- "Male and Female Breast, in situ"
+unoq  %>% filter(ID=="DTA4E2531BL") %>% select(Warehouse_Qty) %>% tail(1)
+unom  %>% filter(ID=="DTA4E2531BL") %>% select(Warehouse_Qty) %>% tail(1)
 
-cancer$year <- as.character(cancer$year)
-table(cancer$year) #1999-2012 + "2008-2012"
+sample = sale  %>% filter(Style_Color=="DTA4E2531BL")   
 
-cancer$count <- as.numeric(cancer$count)
-summary(cancer$count) #skewed right, 128K NA's
-hist(log(cancer$count))
+prophetts <- function(sample, input_radio){
+  m = prophet(sample, changepoint.prior.scale = 0.02)
+  future = make_future_dataframe(m, periods=52, freq = 'weeks')
+  forecast = predict(m, future)
+  if(input_radio==1){forecastts = forecast%>%select(., ds,trend) %>% mutate(Time = format(as.Date(ds), "%Y-%m"))%>%
+  group_by(Time) %>% summarise(Quantity = sum(trend))}
+  else{forecastts = forecast%>%select(., ds,trend) %>% mutate(Time = as.yearqtr(ds, format = "%Y-%m-%d"))%>%
+    group_by(Time) %>% summarise(Quantity = sum(trend))}
+  return(forecastts)
+  }
 
-cancer$population <- as.numeric(cancer$population)
-summary(cancer$population) #skewed left, 3420 age group with 0
-hist(log(cancer$population))
+forecast %>% mutate(Time = format(as.Date(ds), "%Y-%m"))%>%
+  group_by(Time) %>% summarise(Quantity = sum(trend))
 
-#removing weird category
-rowstorm <- union(which(cancer$race=="All Races"), which(cancer$sex=="Male and Female"))
-rowstorm <- union(rowstorm, which(cancer$site=="All Cancer Sites Combined"))
-rowstorm <- union(rowstorm, which(cancer$year=="2008-2012"))
-
-#cleaned dataset
-cancdata <- cancer[-rowstorm,-c(2,3,8)] #121,030 rows, 9 columns
-
-table(cancdata$age) #<1, 1-4, 5-9, ... 75-79, 80-84, 85+
-table(cancdata$event_type) #incidence OR mortality
-table(cancdata$race) #5 different races
-table(cancdata$sex) #female or male
-table(cancdata$site) #27 different site
-table(cancdata$year) #1999-2012
-
-cancdata$incrate <- cancdata$count/cancdata$population*100000
-
-#write.csv(cancdata, "cancdata.csv")
+prophetts(sample,2)
 
 #plot demo
-eda1 <- cancdata %>% 
-  group_by(site) %>% 
-  summarise(Cancer_Occurence=sum(count,na.rm = TRUE),
-            Total_Population = sum(population,na.rm = TRUE),
-            Incidence_Rate = round(Cancer_Occurence/Total_Population*100000,2)) %>%
-  arrange(desc(Incidence_Rate)) %>% head(10)
+eda1 <- unoq  %>% filter(ID=="DTA1B2073BRN-PJA")%>%
+  gather(key="Inv_Traffic", value="Qty", c('Out_Qty','In_Qty','Warehouse_Qty'))
 
-ggplot(subset(eda1, !is.na(Incidence_Rate)), aes(x=reorder(site,Incidence_Rate), y=Incidence_Rate))+
-  geom_bar(stat='identity', fill="turquoise") +
-  ylab("Incidence per 100,000") + xlab("") + ggtitle("Top 10 Cancers by Rates of New Cancer Cases")+
-  scale_fill_brewer(palette="Dark2")+
-  coord_flip()
+ggplot(eda1, 
+         aes(x=Date, y=Qty, group=Inv_Traffic)) + geom_line(aes(color=Inv_Traffic)) + 
+         geom_point(aes(color=Inv_Traffic)) + xlab("") + ylab("Quantity") + 
+         ggtitle("Inventory Flow Analysis") 
 
-eda2 <- cancdata %>% group_by(site,event_type) %>%
-  summarise(Cancer_Occurence=sum(count,na.rm = TRUE),
-            Total_Population = sum(population,na.rm = TRUE),
-            Incidence_Rate = round(Cancer_Occurence/Total_Population*100000,2)) %>%
-  filter(event_type=="Mortality")%>% 
-  arrange(desc(Incidence_Rate)) %>% head(10)
+eda2 <- unoq  %>% filter(ID=="DTA1B2073BRN-PJA")
 
-ggplot(subset(eda2, !is.na(Incidence_Rate)), aes(x=reorder(site,Incidence_Rate), y=Incidence_Rate))+
-  geom_bar(stat='identity', fill="coral") +
-  ylab("Incidence per 100,000") + xlab("") + ggtitle("Top 10 Cancers by Rates of Cancer Deaths")+
-  scale_fill_brewer(palette="Dark2")+
-  coord_flip()
+p <- plot_ly(unoq  %>% filter(ID=="DTA1B2073BRN-PJA"), x = ~Date, y = ~In_Qty, name = 'In Qty', type = 'scatter', mode = 'lines+markers') %>%
+  add_trace(y = ~Out_Qty, name = 'Out Qty', mode = 'lines+markers') %>%
+  add_trace(y = ~Warehouse_Qty, name = 'Warehouse Qty', mode = 'lines+markers')%>%
+  layout(title = "Inventory Flow Analysis",xaxis = list(title = "Quarter"),yaxis = list (title = "Quantity"))
 
-eda3 <- cancdata %>% 
-  group_by(year, sex) %>% 
-  summarise(Cancer_Occurence=sum(count,na.rm = TRUE),
-            Total_Population = sum(population,na.rm = TRUE),
-            Incidence_Rate = round(Cancer_Occurence/Total_Population*100000,2)) %>% arrange(year)
-
-ggplot(eda3, aes(x=year, y=Incidence_Rate, group=sex)) + 
-  geom_line(aes(color=sex)) + 
-  geom_point(aes(color=sex)) +
-  xlab("") + ylab("Incidence per 100,000") + 
-  ggtitle("Timeline of Cancer Incidence Rate") 
-
-
-eda4 <- cancdata %>% 
-  group_by(age, sex) %>% 
-  summarise(Cancer_Occurence=sum(count,na.rm = TRUE),
-            Total_Population = sum(population,na.rm = TRUE),
-            Incidence_Rate = round(Cancer_Occurence/Total_Population*100000,2)) 
-
-ggplot(eda4, aes(x=age, y=Incidence_Rate, group=sex)) + 
-  geom_line(aes(color=sex)) + 
-  geom_point(aes(color=sex)) +
-  xlab("") + ylab("Incidence per 100,000") + 
-  ggtitle("Cancer Incidence Rate by Age") 
-
-pie(table(cancdata %>% select(event_type)),col= c(5,2),
-    main="Incidence vs. Mortality")
-
-ggplot(cancdata %>% filter(year%in%c(1999,2012),site%in%c("Female Breast")) %>%
-         select(event_type), 
-       aes(x="", y=event_type, fill=event_type)) + geom_bar(width = 1, stat = "identity")+
-  coord_polar("y", start=0) + ylab("")  + xlab("")
+datatable(unoq  %>% filter(ID=="DTA1B2073BRN-PJA") %>% select(-c(Unit_Price,ID)))
 
 
 
