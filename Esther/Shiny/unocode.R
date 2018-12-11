@@ -46,7 +46,7 @@ prophetts <- function(sample, input_radio){
 forecast %>% mutate(Time = format(as.Date(ds), "%Y-%m"))%>%
   group_by(Time) %>% summarise(Quantity = sum(trend))
 
-prophetts(sample,2)
+as.character(prophetts(sample,2)[,1])
 
 #plot demo
 eda1 <- unoq  %>% filter(ID=="DTA1B2073BRN-PJA")%>%

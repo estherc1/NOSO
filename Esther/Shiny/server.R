@@ -52,6 +52,7 @@ shinyServer(
     })
     
     
+    
     output$tline_plot <- renderPlotly({
       if(input$radio==1){
         plot_ly(prophetts(sale %>% filter(Style_Color==input$id),1), x = ~Date, y = ~Quantity, name = 'Quantity', type = 'scatter', mode = 'lines+markers') %>%

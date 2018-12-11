@@ -17,7 +17,7 @@ ui <- dashboardPage( skin="yellow",
     fluidRow(
       selectInput(inputId = "radio", label = h5("Time Frequency"),
                    choices = list("Monthly" = 1, "Quarterly" = 2), selected = 1),
-      selectInput(inputId = "id", label = h5("ID"), choices = unique(unoq$ID), 
+      selectInput(inputId = "id", label = h5("ID"), choices = unique(sale$Style_Color), 
                   selected = "DTA4E2531BL")
     )
     
@@ -61,6 +61,7 @@ ui <- dashboardPage( skin="yellow",
               ),
       tabItem(tabName = 'dem', h2("Demand Forecast of Inventory Quantity"),
               fluidPage(
+                
                 fluidRow(
                   column(12, align="center",
                          plotlyOutput("tline_plot", width = 1000)

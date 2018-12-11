@@ -1,0 +1,12 @@
+name: InventoryManagement
+title: InventoryManagement
+username:
+account: estherchang10
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 612254
+bundleId: 1753333
+url: https://estherchang10.shinyapps.io/InventoryManagement/
+when: 1544466803.30917
+asMultiple: FALSE
+asStatic: FALSE
